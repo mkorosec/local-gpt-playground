@@ -37,3 +37,11 @@ python find.py '<query>'
 * build a "context" query from embeddings
 * query alpaca with context gained from embeddings + query
 * introduce a vector db instead of a json file
+
+# Related resources
+
+https://simonwillison.net/2023/Jan/13/semantic-search-answers/
+https://til.simonwillison.net/python/gtr-t5-large
+https://huggingface.co/sentence-transformers/gtr-t5-large
+https://github.com/antimatter15/alpaca.cpp
+https://github.com/openai/openai-cookbook/tree/main/examples/vector_databases
