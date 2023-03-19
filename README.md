@@ -27,7 +27,7 @@ python find.py '<query>'
 ```
 
 * load the json file dumped from the previous step
-* calculate embedding vector for <query>
+* calculate embedding vector for query
 * find 5 nearest neighbours
 * print them to stdout
 
