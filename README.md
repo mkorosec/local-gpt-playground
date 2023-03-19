@@ -33,10 +33,9 @@ python find.py '<query>'
 
 # TODO
 
-* setup alpaca.cpp
-* build a "context" query from embeddings
 * query alpaca with context gained from embeddings + query
 * introduce a vector db instead of a json file
+* json chunking - for large texts, incrementally build json file
 
 # Related resources
 
