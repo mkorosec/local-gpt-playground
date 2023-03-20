@@ -67,6 +67,6 @@ def save_embeddings(embeddings, source_files):
     print(datetime.datetime.now().isoformat())
     print("embeddings saved")
 
-texts, source_files = load_data(folder_to_scan):
+texts, source_files = load_data(folder_to_scan)
 embeddings = get_embeddings(texts)
 save_embeddings(embeddings, source_files)
