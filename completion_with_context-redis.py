@@ -78,9 +78,8 @@ def search_redis(
     results = redis_client.ft(index_name).search(redis_query, params_dict)
     for i, article in enumerate(results.docs):
         score = 1 - float(article.vector_score)
-        print(f"{i}. {article.text} (Score: {round(score ,3) }, Source: {article.source_file})")
+        print(f"{i}. {article.text}... (Score: {round(score ,3) }, Source: {article.source_file})")
     return results.docs
-
 
 
 

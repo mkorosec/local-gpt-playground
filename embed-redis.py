@@ -76,7 +76,8 @@ except:
 def parse_file_content_to_chunks(file_content):
     content = file_content
     # split content by double newlines
-    paragraphs = content.split("\n\n")
+    paragraphs = content.split("==")
+    # paragraphs = [content]
     # trim and skip empty lines
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
     return paragraphs
