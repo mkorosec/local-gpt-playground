@@ -3,3 +3,8 @@ redis:
 
 clear-redis-data:	
 	docker stop redis-stack && docker rm redis-stack && docker volume rm redis-data
+
+install-npm-playground:
+	npm install gpt-3-encoder
+	npm install tsx
+
