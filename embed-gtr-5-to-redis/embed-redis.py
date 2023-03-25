@@ -1,12 +1,19 @@
 import os
+import re
 import datetime
 import json
 import sys
 import numpy as np
+from transformers import GPT2TokenizerFast
 from sentence_transformers import SentenceTransformer
 from torch.hub import _get_torch_home
 model = SentenceTransformer("sentence-transformers/gtr-t5-large")
 print("model on fs is located here: " + _get_torch_home())
+
+# this will be used in splitting the text into chunks - to get to proper chunk size we first need to encode the text in tokens
+tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+CHUNK_SIZE = 200            # this is not necessarily the max limit allowed by the API, but simply what makes sense as a unit of content
+MAX_TOKEN_LENGTH = 1024     # this is the actual limit of the embeddings API / model
 
 # what to embded
 folder_to_scan = sys.argv[1] if len(sys.argv) > 1 else "."
@@ -69,17 +76,49 @@ except:
 
 
 
+def sanitize_sentence(text):
+    # from sentence remove all parts that are placed within square brackets, remove all md title syntax (#) and adoc title syntax (=) and trim
+    return re.sub(r'\[.*?\]', '', text).replace("#", "").replace("=", "").strip()
 
+def number_of_tokens(text):
+    tokenized_input = tokenizer(text)
+    n = len(tokenized_input['input_ids'])
+    return n
 
-
-
-def parse_file_content_to_chunks(file_content):
-    content = file_content
-    # split content by double newlines
-    paragraphs = content.split("==")
-    # paragraphs = [content]
-    # trim and skip empty lines
-    paragraphs = [p.strip() for p in paragraphs if p.strip()]
+def split_text_into_chunks(file_content):
+    # trim file content
+    content = file_content.strip()
+    paragraphs = []
+    # split content into sentences
+    sentences = content.split(". ")
+    current_paragraph = ""
+    current_paragraph_token_count = 0
+    for s in sentences:
+        sentence = sanitize_sentence(s)
+        # if sentence is empty, continue to next sentence
+        if (sentence == ""):
+            continue
+        sentence_token_count = number_of_tokens(sentence)
+        if (sentence_token_count > MAX_TOKEN_LENGTH):
+            # sentence needs to be forcefully split into chunks of MAX_TOKEN_LENGTH and added to the paragraphs array
+            # split sentence into chunks of MAX_TOKEN_LENGTH
+            chunks = [sentence[i:i+MAX_TOKEN_LENGTH] for i in range(0, len(sentence), MAX_TOKEN_LENGTH)]
+            for chunk in chunks:
+                paragraphs.append(chunk)
+            continue
+        # if sentence can be added to paragraph without exceeding the chunk size - do it
+        # otherwise, finish the last paragraph and start a new one with the current sentence
+        if sentence_token_count + current_paragraph_token_count < CHUNK_SIZE:
+            current_paragraph += " " + sentence
+            current_paragraph_token_count += sentence_token_count
+        else:
+            if (current_paragraph != ""):
+                paragraphs.append(current_paragraph)
+            current_paragraph = sentence
+            current_paragraph_token_count = sentence_token_count
+    # add last paragraph
+    if (current_paragraph != ""):
+        paragraphs.append(current_paragraph)
     return paragraphs
 
 def load_data(folder_to_scan):
@@ -99,7 +138,7 @@ def load_data(folder_to_scan):
                 counter += 1
                 print("processing file " + str(counter) + " of " + str(file_count) + ": " + file)
                 with open(os.path.join(root, file), "r") as f:
-                    paragraphs = parse_file_content_to_chunks(f.read())
+                    paragraphs = split_text_into_chunks(f.read())
                     # append paragraphs array to texts array
                     texts.extend(paragraphs)
                     # append file multiple times to source_files array - so that a paragraph[i] corresponds to source_files[i]
@@ -124,19 +163,6 @@ def get_embeddings(texts):
     return embeddings
 
 def save_embeddings(texts, embeddings, source_files):
-    # print("saving embeddings")
-    # print(datetime.datetime.now().isoformat())
-    # with open("embeddings.json", "a") as fp:
-    #     json.dump(
-    #         {
-    #             "source_files": source_files,
-    #             "embeddings": [list(map(float, e)) for e in embeddings],
-    #             "texts": texts
-    #         },
-    #         fp,
-    #     )
-    # print(datetime.datetime.now().isoformat())
-    # print("embeddings saved")
     for i in range(len(texts)):
         redis_client.hset(PREFIX + ':' + str(i), mapping =
             {
@@ -147,6 +173,10 @@ def save_embeddings(texts, embeddings, source_files):
         )
 
 for texts, source_files in load_data(folder_to_scan):
+    if (len(texts) == 0):
+        break
     print("Performing chunked embedding on " + str(len(texts)) + " texts")
+    #for i in range(len(texts)):
+    #    print("(" + str(i) + ") " + source_files[i] + ": " + texts[i])
     embeddings = get_embeddings(texts)
     save_embeddings(texts, embeddings, source_files)

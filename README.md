@@ -12,30 +12,32 @@ pip install httpx faiss-cpu
 ## build index
 
 ```
-python embded.py <folder>
+python embed-gtr-5-to-redis/embded-redis.py <folder>
 ```
 
 * will recursively scan folder for txt/md/org/tex files
 * split the text by \n\n
 * calculate embeddings for each paragraph
-* store a json file with a reference to source_file, paragraph (full text), embedding vector
+* store an entry to redis with a reference to source_file, paragraph (full text), embedding vector
 
 ## query embeddings
 
 ```
-python find.py '<query>'
+python embed-gtr-5-to-redis/completion_with_context-redis.py '<query>'
 ```
 
-* load the json file dumped from the previous step
+* search redis with knn
 * calculate embedding vector for query
-* find 5 nearest neighbours
+* find 5 nearest neighbours in redis from the embedded vectors
 * print them to stdout
 
 # TODO
 
 * query alpaca with context gained from embeddings + query
-* introduce a vector db instead of a json file
-* json chunking - for large texts, incrementally build json file
++ introduce a vector db instead of a json file
+
+* UI module that can search the redis db for similar chunks -> display source_file + relevant part of text
+
 
 # Related resources
 
